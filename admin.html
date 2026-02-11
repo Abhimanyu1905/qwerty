@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chicken World - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            red: '#ef4f5f',
+                            dark: '#1c1c1c',
+                            gray: '#f5f5f5'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+</head>
+
+<body class="bg-gray-50 pb-20">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-brand-red flex items-center gap-2">
+                <span class="material-icons-round">admin_panel_settings</span> Admin Dashboard
+            </h1>
+            <button onclick="logout()" class="text-gray-500 hover:text-brand-red font-medium">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- Add Food Item -->
+        <div class="bg-white p-6 rounded-2xl shadow-lg h-fit">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <span class="material-icons-round text-brand-red">fastfood</span> Add Food Item
+            </h2>
+            <form onsubmit="handleAddFood(event)">
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-bold mb-2">Item Name</label>
+                    <input type="text" id="itemName" required
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-bold mb-2">Image URL</label>
+                    <input type="url" id="itemImage" required placeholder="https://..."
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red">
+                </div>
+                <div class="flex gap-4 mb-6">
+                    <div class="w-1/2">
+                        <label class="block text-gray-700 font-bold mb-2">Price (₹)</label>
+                        <input type="number" id="itemPrice" required min="1"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-gray-700 font-bold mb-2">Rating</label>
+                        <input type="number" id="itemRating" required min="1" max="5" step="0.1"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red">
+                    </div>
+                </div>
+                <button type="submit"
+                    class="w-full bg-brand-red text-white font-bold py-3 rounded-xl hover:bg-red-600 transition shadow-lg">
+                    Add Item
+                </button>
+            </form>
+        </div>
+
+        <!-- Manage Users -->
+        <div class="bg-white p-6 rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <span class="material-icons-round text-brand-red">people</span> Manage Users
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 text-sm uppercase">
+                            <th class="p-3 rounded-tl-lg">Username</th>
+                            <th class="p-3">Role</th>
+                            <th class="p-3 rounded-tr-lg text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userList" class="text-gray-700">
+                        <!-- Users injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Menu Preview Section -->
+    <div class="container mx-auto px-4 mt-12 mb-12">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Current Menu Items</h2>
+        <div id="adminMenuGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <!-- Menu preview -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        checkSession('admin');
+
+        function handleAddFood(e) {
+            e.preventDefault();
+            const name = document.getElementById('itemName').value;
+            const image = document.getElementById('itemImage').value;
+            const price = parseFloat(document.getElementById('itemPrice').value);
+            const rating = parseFloat(document.getElementById('itemRating').value);
+
+            const items = getData('foodItems');
+            const newItem = {
+                id: Date.now(),
+                name,
+                image,
+                price,
+                rating
+            };
+
+            items.push(newItem);
+            setData('foodItems', items);
+
+            e.target.reset();
+            showToast('Item Added Successfully!');
+            renderAdminMenu();
+        }
+
+        function renderUsers() {
+            const users = getData('users');
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+            const tbody = document.getElementById('userList');
+
+            tbody.innerHTML = users.map(user => `
+                <tr class="border-b last:border-0 hover:bg-gray-50 transition">
+                    <td class="p-3 font-medium">${user.username} ${user.username === currentUser.username ? '(You)' : ''}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded text-xs font-bold ${getRoleBadgeColor(user.role)}">
+                            ${user.role}
+                        </span>
+                    </td>
+                    <td class="p-3 text-right">
+                        ${user.username !== 'admin' && user.username !== currentUser.username ? `
+                            <button onclick="deleteUser('${user.username}')" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-full">
+                                <span class="material-icons-round text-sm">delete</span>
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteUser(username) {
+            if (confirm(`Are you sure you want to delete user: ${username}?`)) {
+                let users = getData('users');
+                users = users.filter(u => u.username !== username);
+                setData('users', users);
+                renderUsers();
+                showToast('User deleted.');
+            }
+        }
+
+        function getRoleBadgeColor(role) {
+            switch (role) {
+                case 'admin': return 'bg-purple-100 text-purple-700';
+                case 'shopkeeper': return 'bg-blue-100 text-blue-700';
+                case 'client': return 'bg-green-100 text-green-700';
+                default: return 'bg-gray-100 text-gray-700';
+            }
+        }
+
+        function renderAdminMenu() {
+            const items = getData('foodItems');
+            const grid = document.getElementById('adminMenuGrid');
+
+            grid.innerHTML = items.map(item => `
+                <div class="bg-white p-3 rounded-lg shadow flex flex-col gap-2 relative group">
+                    <img src="${item.image}" class="w-full h-24 object-cover rounded-md">
+                    <h4 class="font-bold text-sm truncate">${item.name}</h4>
+                    <p class="text-brand-red font-bold text-xs">₹${item.price}</p>
+                    <button onclick="deleteItem(${item.id})" class="absolute top-2 right-2 bg-white text-red-500 p-1 rounded-full shadow opacity-0 group-hover:opacity-100 transition">
+                        <span class="material-icons-round text-sm">delete</span>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function deleteItem(id) {
+            if (confirm('Delete this item?')) {
+                let items = getData('foodItems');
+                items = items.filter(i => i.id !== id);
+                setData('foodItems', items);
+                renderAdminMenu();
+                showToast('Item deleted.');
+            }
+        }
+
+        renderUsers();
+        renderAdminMenu();
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chicken World - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            red: '#ef4f5f',
+                            dark: '#1c1c1c',
+                            gray: '#f5f5f5'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div
+        class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md transform transition-all hover:scale-105 duration-300">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-brand-red mb-2">Chicken World</h1>
+            <p class="text-gray-500">Deliciousness awaits!</p>
+        </div>
+
+        <!-- Toggle Buttons -->
+        <div class="flex bg-gray-200 rounded-full p-1 mb-6">
+            <button id="loginTab" onclick="switchTab('login')"
+                class="flex-1 py-2 rounded-full text-sm font-semibold transition-all bg-white shadow text-brand-red">Login</button>
+            <button id="registerTab" onclick="switchTab('register')"
+                class="flex-1 py-2 rounded-full text-sm font-semibold transition-all text-gray-500 hover:text-gray-700">Register</button>
+        </div>
+
+        <!-- Form -->
+        <form id="authForm" onsubmit="handleAuth(event)">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Role</label>
+                <select id="role" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red">
+                    <option value="client">Client</option>
+                    <option value="shopkeeper">Shopkeeper</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Username</label>
+                <input type="text" id="username" required
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red"
+                    placeholder="Enter username">
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                <input type="password" id="password" required
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red"
+                    placeholder="Enter password">
+            </div>
+
+            <button type="submit" id="submitBtn"
+                class="w-full bg-brand-red text-white font-bold py-3 rounded-lg hover:bg-red-600 transition duration-300 shadow-lg">
+                Login
+            </button>
+        </form>
+
+        <p id="errorMsg" class="text-red-500 text-center text-sm mt-4 hidden"></p>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let isLogin = true;
+
+        // Redirect if already logged in
+        const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+        if (currentUser) {
+            if (currentUser.role === 'client') window.location.href = 'client.html';
+            else if (currentUser.role === 'shopkeeper') window.location.href = 'shopkeeper.html';
+            else if (currentUser.role === 'admin') window.location.href = 'admin.html';
+        }
+
+        function switchTab(tab) {
+            isLogin = tab === 'login';
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (isLogin) {
+                loginTab.classList.add('bg-white', 'shadow', 'text-brand-red');
+                loginTab.classList.remove('text-gray-500');
+                registerTab.classList.remove('bg-white', 'shadow', 'text-brand-red');
+                registerTab.classList.add('text-gray-500');
+                submitBtn.innerText = 'Login';
+            } else {
+                registerTab.classList.add('bg-white', 'shadow', 'text-brand-red');
+                registerTab.classList.remove('text-gray-500');
+                loginTab.classList.remove('bg-white', 'shadow', 'text-brand-red');
+                loginTab.classList.add('text-gray-500');
+                submitBtn.innerText = 'Register';
+            }
+            document.getElementById('errorMsg').classList.add('hidden');
+        }
+
+        function handleAuth(e) {
+            e.preventDefault();
+            const role = document.getElementById('role').value;
+            const username = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            if (isLogin) {
+                if (login(username, pass, role)) {
+                    showToast('Login Successful!');
+                    setTimeout(() => {
+                        if (role === 'client') window.location.href = 'client.html';
+                        else if (role === 'shopkeeper') window.location.href = 'shopkeeper.html';
+                        else if (role === 'admin') window.location.href = 'admin.html';
+                    }, 500);
+                } else {
+                    errorMsg.innerText = 'Invalid credentials or role!';
+                    errorMsg.classList.remove('hidden');
+                }
+            } else {
+                if (register(username, pass, role)) {
+                    showToast('Registration Successful! Please Login.');
+                    switchTab('login');
+                } else {
+                    errorMsg.innerText = 'User already exists!';
+                    errorMsg.classList.remove('hidden');
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

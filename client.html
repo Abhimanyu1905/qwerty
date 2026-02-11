@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chicken World - Client</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            red: '#ef4f5f',
+                            dark: '#1c1c1c',
+                            gray: '#f5f5f5'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+</head>
+
+<body class="bg-gray-50 pb-20">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-brand-red flex items-center gap-2 cursor-pointer"
+                onclick="switchView('home')">
+                <span class="material-icons-round">restaurant_menu</span> Chicken World
+            </h1>
+
+            <!-- Navigation Links -->
+            <div class="hidden md:flex items-center gap-6">
+                <button onclick="switchView('home')" id="nav-home"
+                    class="text-brand-red font-bold transition">Home</button>
+                <button onclick="switchView('track')" id="nav-track"
+                    class="text-gray-500 hover:text-brand-red font-medium transition">Track Order</button>
+                <button onclick="switchView('orders')" id="nav-orders"
+                    class="text-gray-500 hover:text-brand-red font-medium transition">Order History</button>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="relative cursor-pointer" onclick="toggleCart()">
+                    <span class="material-icons-round text-3xl text-gray-700">shopping_cart</span>
+                    <span id="cartCount"
+                        class="absolute -top-1 -right-1 bg-brand-red text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">0</span>
+                </div>
+                <button onclick="logout()" class="text-gray-500 hover:text-brand-red font-medium">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Home View -->
+    <div id="homeView">
+        <!-- Hero Section -->
+        <header
+            class="bg-brand-red text-white py-12 px-4 text-center rounded-b-3xl mb-8 shadow-lg relative overflow-hidden">
+            <div
+                class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/food.png')]">
+            </div>
+            <div class="relative z-10">
+                <h2 class="text-4xl font-bold mb-2">Craving Chicken?</h2>
+                <p class="text-lg opacity-90">Order your favorites now!</p>
+
+                <!-- Search Bar -->
+                <div class="mt-6 max-w-lg mx-auto relative">
+                    <input type="text" id="searchInput" oninput="renderMenu()" placeholder="Search for dishes..."
+                        class="w-full pl-12 pr-4 py-3 rounded-full text-gray-800 shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-red">
+                    <span class="material-icons-round absolute left-4 top-3 text-gray-400">search</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Menu Grid -->
+        <div class="container mx-auto px-4">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">Our Menu</h3>
+            <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Items injected by JS -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Cart Modal -->
+    <div id="cartModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-end">
+        <div class="bg-white w-full max-w-md h-full shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-full"
+            id="cartContent">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <span class="material-icons-round text-brand-red">shopping_bag</span> Your Cart
+                </h2>
+                <button onclick="toggleCart()" class="text-gray-500 hover:text-red-500">
+                    <span class="material-icons-round">close</span>
+                </button>
+            </div>
+
+            <div id="cartItems" class="flex-1 overflow-y-auto p-4 space-y-4">
+                <!-- Cart Items -->
+            </div>
+
+            <div class="p-4 border-t bg-gray-50">
+                <div class="flex justify-between items-center mb-4 text-lg font-bold">
+                    <span>Total:</span>
+                    <span id="cartTotal" class="text-brand-red">₹0.00</span>
+                </div>
+                <button onclick="placeOrder()"
+                    class="w-full bg-brand-red text-white py-3 rounded-xl font-bold hover:bg-red-600 transition shadow-lg">
+                    Place Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Track Order View -->
+    <div id="trackOrderView" class="hidden">
+        <div class="container mx-auto px-4 mt-8 mb-12">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">Track Your Orders</h3>
+            <div id="trackOrderList" class="space-y-4">
+                <div class="text-center text-gray-400 py-4">No active orders</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders View -->
+    <div id="ordersView" class="hidden">
+        <!-- Your Orders Section -->
+        <div class="container mx-auto px-4 mt-8 mb-12">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">Your Order History</h3>
+            <div id="ordersList" class="space-y-4">
+                <div class="text-center text-gray-400 py-4">No past orders</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const user = checkSession('client');
+        let cart = {};
+
+        // Load cart from local storage specifically for this user
+        function loadCart() {
+            const allCarts = getData('cart') || {};
+            cart = allCarts[user.username] || {};
+            updateCartUI();
+        }
+
+        function saveCart() {
+            const allCarts = getData('cart') || {};
+            allCarts[user.username] = cart;
+            setData('cart', allCarts);
+            updateCartUI();
+        }
+
+        function renderMenu() {
+            const items = getData('foodItems');
+            const grid = document.getElementById('menuGrid');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+
+            grid.innerHTML = items
+                .filter(item => item.name.toLowerCase().includes(search))
+                .map(item => `
+                <div class="bg-white rounded-2xl shadow hover:shadow-xl transition duration-300 overflow-hidden group">
+                    <div class="relative h-48 overflow-hidden">
+                        <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        <div class="absolute top-2 right-2 bg-white px-2 py-1 rounded-lg shadow text-xs font-bold flex items-center gap-1">
+                            <span class="text-yellow-500 material-icons-round text-sm">star</span> ${item.rating}
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-bold text-lg text-gray-800 mb-1 truncate">${item.name}</h4>
+                        <div class="flex justify-between items-center mt-3">
+                            <span class="text-xl font-bold text-brand-red">₹${item.price}</span>
+                            <button onclick="addToCart(${item.id})" class="bg-brand-red text-white p-2 rounded-full shadow-lg hover:bg-black transition active:scale-95">
+                                <span class="material-icons-round text-sm">add</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            if (grid.innerHTML === '') grid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-10">No items found.</p>';
+        }
+
+        function addToCart(id) {
+            const items = getData('foodItems');
+            const item = items.find(i => i.id === id);
+
+            if (cart[id]) {
+                cart[id].quantity++;
+            } else {
+                cart[id] = { ...item, quantity: 1 };
+            }
+            saveCart();
+            showToast('Added to cart!');
+        }
+
+        function removeFromCart(id) {
+            delete cart[id];
+            saveCart();
+        }
+
+        function updateQuantity(id, change) {
+            if (cart[id].quantity + change <= 0) {
+                removeFromCart(id);
+            } else {
+                cart[id].quantity += change;
+                saveCart();
+            }
+        }
+
+        function updateCartUI() {
+            const cartItems = document.getElementById('cartItems');
+            const cartTotal = document.getElementById('cartTotal');
+            const cartCount = document.getElementById('cartCount');
+
+            let total = 0;
+            let count = 0;
+
+            const entries = Object.values(cart);
+
+            if (entries.length === 0) {
+                cartItems.innerHTML = '<div class="text-center text-gray-400 py-10 flex flex-col items-center"><span class="material-icons-round text-4xl mb-2">remove_shopping_cart</span>Empty Cart</div>';
+            } else {
+                cartItems.innerHTML = entries.map(item => {
+                    total += item.price * item.quantity;
+                    count += item.quantity;
+                    return `
+                    <div class="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                        <img src="${item.image}" class="w-16 h-16 rounded-lg object-cover">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-sm text-gray-800">${item.name}</h4>
+                            <p class="text-brand-red font-bold text-xs">₹${item.price}</p>
+                        </div>
+                        <div class="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                            <button onclick="updateQuantity(${item.id}, -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded shadow text-gray-600 hover:text-red-500">-</button>
+                            <span class="text-xs font-bold w-4 text-center">${item.quantity}</span>
+                            <button onclick="updateQuantity(${item.id}, 1)" class="w-6 h-6 flex items-center justify-center bg-white rounded shadow text-gray-600 hover:text-green-500">+</button>
+                        </div>
+                    </div>
+                `}).join('');
+            }
+
+            cartTotal.innerText = formatCurrency(total);
+            cartCount.innerText = count;
+            cartCount.classList.toggle('hidden', count === 0);
+        }
+
+        function toggleCart() {
+            const modal = document.getElementById('cartModal');
+            const content = document.getElementById('cartContent');
+
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                setTimeout(() => content.classList.remove('translate-x-full'), 10);
+            } else {
+                content.classList.add('translate-x-full');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            }
+        }
+
+        function placeOrder() {
+            const entries = Object.values(cart);
+            if (entries.length === 0) {
+                showToast('Cart is empty!');
+                return;
+            }
+
+            const orders = getData('orders') || [];
+            const newOrder = {
+                id: Date.now(),
+                client: user.username, // Using 'client' as per data model, though variable is user.username
+                items: entries,
+                total: entries.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                status: 'Order Placed',
+                timestamp: new Date().toISOString()
+            };
+
+            orders.push(newOrder);
+            setData('orders', orders);
+
+            // Clear cart
+            cart = {};
+            saveCart();
+            toggleCart();
+            showToast('Order Placed Successfully!');
+
+            // Switch to Track Order view automatically
+            switchView('track');
+            renderOrders();
+        }
+
+        function renderOrders() {
+            const orders = getData('orders') || [];
+            const myOrders = orders.filter(o => o.client === user.username).reverse();
+
+            // Separate active and past orders
+            const activeOrders = myOrders.filter(o => o.status !== 'Delivered');
+            const pastOrders = myOrders.filter(o => o.status === 'Delivered');
+
+            const trackContainer = document.getElementById('trackOrderList');
+            const historyContainer = document.getElementById('ordersList');
+
+            // Render Track Orders (Active)
+            if (activeOrders.length === 0) {
+                trackContainer.innerHTML = '<div class="text-center text-gray-400 py-8 bg-white rounded-xl shadow-sm">No active orders to track.</div>';
+            } else {
+                trackContainer.innerHTML = activeOrders.map(order => createOrderCard(order)).join('');
+            }
+
+            // Render Order History (Delivered)
+            if (pastOrders.length === 0) {
+                historyContainer.innerHTML = '<div class="text-center text-gray-400 py-8 bg-white rounded-xl shadow-sm">No past orders.</div>';
+            } else {
+                historyContainer.innerHTML = pastOrders.map(order => createOrderCard(order)).join('');
+            }
+        }
+
+        function createOrderCard(order) {
+            return `
+                <div class="bg-white p-5 rounded-2xl shadow hover:shadow-md transition border-l-4 ${getStatusColor(order.status)}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="text-xs text-gray-500 font-mono">#${order.id.toString().slice(-6)}</span>
+                            <h4 class="font-bold text-gray-800">${new Date(order.timestamp).toLocaleString()}</h4>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200 uppercase tracking-wide">
+                            ${order.status}
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-2">
+                        ${order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                    </div>
+                    <div class="text-right font-bold text-brand-red text-lg">
+                        ${formatCurrency(order.total)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'Order Placed': return 'border-blue-500';
+                case 'Order Accepted': return 'border-indigo-500';
+                case 'Being Cooked': return 'border-yellow-500';
+                case 'Order Ready': return 'border-orange-500';
+                case 'Out for Delivery': return 'border-purple-500';
+                case 'Delivered': return 'border-green-500';
+                default: return 'border-gray-300';
+            }
+        }
+
+        function switchView(viewName) {
+            const homeView = document.getElementById('homeView');
+            const trackView = document.getElementById('trackOrderView');
+            const ordersView = document.getElementById('ordersView');
+
+            const navHome = document.getElementById('nav-home');
+            const navTrack = document.getElementById('nav-track');
+            const navOrders = document.getElementById('nav-orders');
+
+            // Reset all
+            homeView.classList.add('hidden');
+            trackView.classList.add('hidden');
+            ordersView.classList.add('hidden');
+
+            navHome.classList.remove('text-brand-red');
+            navHome.classList.add('text-gray-500');
+            navTrack.classList.remove('text-brand-red');
+            navTrack.classList.add('text-gray-500');
+            navOrders.classList.remove('text-brand-red');
+            navOrders.classList.add('text-gray-500');
+
+            if (viewName === 'home') {
+                homeView.classList.remove('hidden');
+                navHome.classList.add('text-brand-red');
+                navHome.classList.remove('text-gray-500');
+            } else if (viewName === 'track') {
+                trackView.classList.remove('hidden');
+                navTrack.classList.add('text-brand-red');
+                navTrack.classList.remove('text-gray-500');
+                renderOrders();
+            } else if (viewName === 'orders') {
+                ordersView.classList.remove('hidden');
+                navOrders.classList.add('text-brand-red');
+                navOrders.classList.remove('text-gray-500');
+                renderOrders();
+            }
+        }
+
+        // Init
+        loadCart();
+        renderMenu();
+        renderOrders();
+
+        // Auto refresh orders every 5 seconds
+        setInterval(renderOrders, 5000);
+
+    </script>
+</body>
+
+</html>

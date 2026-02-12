@@ -21,6 +21,7 @@
                 }
             }
         }
+
     </script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 </head>
@@ -43,6 +44,8 @@
                     class="text-gray-500 hover:text-brand-red font-medium transition">Track Order</button>
                 <button onclick="switchView('orders')" id="nav-orders"
                     class="text-gray-500 hover:text-brand-red font-medium transition">Order History</button>
+
+
             </div>
 
             <div class="flex items-center gap-4">
@@ -142,11 +145,42 @@
     <script src="script.js"></script>
     <script type="module">
         import { auth, onAuthStateChanged, signOut } from './firebase-config.js';
-        import { getFoodItems, placeOrder, getOrders } from './db-service.js';
+        import { getFoodItems, placeOrder as placeOrderService, getOrders } from './db-service.js';
 
-        // --- Global Helpers for HTML attributes ---
         window.logout = () => {
             signOut(auth).then(() => window.location.href = 'index.html');
+        };
+
+        window.switchView = (viewName) => {
+            // Hide all views
+            document.getElementById('homeView').classList.add('hidden');
+            document.getElementById('trackOrderView').classList.add('hidden');
+            document.getElementById('ordersView').classList.add('hidden');
+
+            // Remove active class from nav items
+            const navs = ['nav-home', 'nav-track', 'nav-orders'];
+            navs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.remove('text-brand-red', 'font-bold');
+                    el.classList.add('text-gray-500');
+                }
+            });
+
+            // Show selected view and update nav
+            if (viewName === 'home') {
+                document.getElementById('homeView').classList.remove('hidden');
+                document.getElementById('nav-home').classList.add('text-brand-red', 'font-bold');
+                document.getElementById('nav-home').classList.remove('text-gray-500');
+            } else if (viewName === 'track') {
+                document.getElementById('trackOrderView').classList.remove('hidden');
+                document.getElementById('nav-track').classList.add('text-brand-red', 'font-bold');
+                document.getElementById('nav-track').classList.remove('text-gray-500');
+            } else if (viewName === 'orders') {
+                document.getElementById('ordersView').classList.remove('hidden');
+                document.getElementById('nav-orders').classList.add('text-brand-red', 'font-bold');
+                document.getElementById('nav-orders').classList.remove('text-gray-500');
+            }
         };
 
         (async function () {
@@ -164,6 +198,21 @@
 
                 // Initialize App Data
                 await initClientApp(user);
+
+                // Auto-seed for demo if empty
+                import('./db-service.js').then(async (module) => {
+                    const items = await module.getFoodItems();
+                    if (items.length === 0) {
+                        const DEFAULT_ITEMS = [
+                            { name: 'Whole Chicken', price: 150, image: 'https://images.unsplash.com/photo-1587593810167-a6492031e5fd?w=800&q=80', rating: 4.5 },
+                            { name: 'Chicken Breast', price: 220, image: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=800&q=80', rating: 4.8 },
+                            { name: 'Spicy Wings', price: 300, image: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=800&q=80', rating: 4.2 },
+                            { name: 'Drumsticks', price: 180, image: 'https://images.unsplash.com/photo-1588723205383-206ae91302b4?w=800&q=80', rating: 4.6 }
+                        ];
+                        await module.seedDatabase(DEFAULT_ITEMS);
+                        renderMenu(); // Refresh
+                    }
+                });
             });
 
             // --- App Logic ---
@@ -178,6 +227,8 @@
 
                 // Auto refresh orders every 10 seconds
                 setInterval(renderOrders, 10000);
+                // Auto refresh menu every 5 seconds (to catch admin updates)
+                setInterval(renderMenu, 5000);
             }
 
             // Cart Logic (Local Storage)
@@ -198,13 +249,23 @@
             window.renderMenu = async function () {
                 const search = document.getElementById('searchInput').value.toLowerCase();
                 const grid = document.getElementById('menuGrid');
-                grid.innerHTML = '<p class="col-span-full text-center py-10">Loading menu...</p>';
+                if (!grid.innerHTML.includes('Loading')) {
+                    // Only show loading if empty, otherwise silent update
+                    if (grid.children.length === 0) grid.innerHTML = '<p class="col-span-full text-center py-10">Loading menu...</p>';
+                }
 
-                const items = await getFoodItems();
+                try {
+                    const items = await getFoodItems();
+                    console.log("Fetched items:", items);
 
-                grid.innerHTML = items
-                    .filter(item => item.name.toLowerCase().includes(search))
-                    .map(item => `
+                    if (items.length === 0) {
+                        grid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-10">No items found.</p>';
+                        return;
+                    }
+
+                    const filtered = items.filter(item => item.name.toLowerCase().includes(search));
+
+                    grid.innerHTML = filtered.map(item => `
                     <div class="bg-white rounded-2xl shadow hover:shadow-xl transition duration-300 overflow-hidden group">
                         <div class="relative h-48 overflow-hidden">
                             <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
@@ -224,20 +285,33 @@
                     </div>
                 `).join('');
 
-                if (grid.innerHTML === '') grid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-10">No items found.</p>';
+                    // Expose items globally
+                    window.currentItems = items;
 
-                // Expose items globally for addToCart if needed, or pass params directly
-                window.currentItems = items;
+                } catch (e) {
+                    console.error("Error rendering menu:", e);
+                    grid.innerHTML = `<p class="col-span-full text-center text-red-500 py-10">Error loading menu: ${e.message}</p>`;
+                }
             }
 
             window.addToCart = function (id, name, image, price) {
-                if (cart[id]) {
-                    cart[id].quantity++;
-                } else {
-                    cart[id] = { id, name, image, price, quantity: 1 };
+                console.log("addToCart called:", id, name, price);
+                try {
+                    if (!currentUser) {
+                        alert("Please wait, logging in...");
+                        return;
+                    }
+                    if (cart[id]) {
+                        cart[id].quantity++;
+                    } else {
+                        cart[id] = { id, name, image, price, quantity: 1 };
+                    }
+                    saveCart();
+                    showToast('Added to cart!');
+                } catch (e) {
+                    console.error("addToCart Error:", e);
+                    alert("Error adding to cart: " + e.message);
                 }
-                saveCart();
-                showToast('Added to cart!');
             }
 
             window.removeFromCart = function (id) {
@@ -290,6 +364,23 @@
                 cartCount.classList.toggle('hidden', count === 0);
             }
 
+            window.toggleCart = function () {
+                const modal = document.getElementById('cartModal');
+                const content = document.getElementById('cartContent');
+                if (modal.classList.contains('hidden')) {
+                    modal.classList.remove('hidden');
+                    // Small delay for transition
+                    setTimeout(() => {
+                        content.classList.remove('translate-x-full');
+                    }, 10);
+                } else {
+                    content.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                    }, 300);
+                }
+            }
+
             // Order Logic (Firestore)
             window.placeOrder = async function () {
                 const entries = Object.values(cart);
@@ -308,7 +399,7 @@
                 };
 
                 try {
-                    await placeOrder(newOrder);
+                    await placeOrderService(newOrder);
 
                     cart = {};
                     saveCart();
@@ -348,22 +439,26 @@
                     historyContainer.innerHTML = pastOrders.map(order => createOrderCard(order)).join('');
                 }
             }
-        })();
 
-        // Make helpers available for HTML onclicks
-        // Note: HTML/CSS/JS "vanilla" separation makes module scoping tricky for inline handlers
-        // We attach to window to make them globally accessible
-        window.renderMenu = () => { /* re-trigger if search changes */
-            // We need to access the internal async function, careful with scoping.
-            // For simplicity, we redefine a wrapper or just let the input event bubble.
-            // Best to just re-attach the event listener or re-define
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                // The internal renderMenu is attached to window in the IIFE
+
+            // Helper for Orders
+            function createOrderCard(order) {
+                return `
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+                    <div>
+                        <p class="font-bold text-gray-800">Order #${order.id.slice(0, 6)}</p>
+                        <p class="text-sm text-gray-500">${new Date(order.timestamp).toLocaleString()}</p>
+                        <p class="text-xs text-brand-red font-semibold mt-1">${order.status}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-brand-red">₹${order.total.toFixed(2)}</p>
+                        <p class="text-xs text-gray-500">${order.items.length} Items</p>
+                    </div>
+                </div>
+            `;
             }
-        }; 
-    </script>
 
+        })();
     </script>
 </body>
 

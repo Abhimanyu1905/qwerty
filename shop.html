@@ -44,18 +44,7 @@
                                 <i data-lucide="layout-dashboard" class="text-gray-300 mr-3 flex-shrink-0 h-6 w-6"></i>
                                 Dashboard
                             </a>
-                            <a href="#orders"
-                                class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-                                <i data-lucide="shopping-bag" class="text-gray-300 mr-3 flex-shrink-0 h-6 w-6"></i>
-                                Live Orders
-                                <span
-                                    class="bg-primary ml-auto text-white py-0.5 px-2.5 rounded-full text-xs font-bold">3</span>
-                            </a>
-                            <a href="#products"
-                                class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-                                <i data-lucide="package" class="text-gray-300 mr-3 flex-shrink-0 h-6 w-6"></i>
-                                Products & Stock
-                            </a>
+                            <!-- Removed Live Orders and Products links as requested -->
                             <a href="/"
                                 class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
                                 <i data-lucide="log-out" class="text-gray-300 mr-3 flex-shrink-0 h-6 w-6"></i>
@@ -87,8 +76,9 @@
         <div class="flex flex-col w-0 flex-1 overflow-hidden">
             <main class="flex-1 relative z-0 overflow-y-auto focus:outline-none">
                 <div class="py-6">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 flex justify-between items-center">
                         <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+                        <span id="lastUpdated" class="text-sm text-gray-500"></span>
                     </div>
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mt-6">
                         <!-- Stats Grid -->
@@ -103,7 +93,7 @@
                                             <dl>
                                                 <dt class="text-sm font-medium text-gray-500 truncate">Total Orders
                                                     Today</dt>
-                                                <dd class="text-2xl font-semibold text-gray-900">12</dd>
+                                                <dd class="text-2xl font-semibold text-gray-900">-</dd>
                                             </dl>
                                         </div>
                                     </div>
@@ -119,7 +109,7 @@
                                             <dl>
                                                 <dt class="text-sm font-medium text-gray-500 truncate">Total Revenue
                                                 </dt>
-                                                <dd class="text-2xl font-semibold text-gray-900">₹4,200</dd>
+                                                <dd class="text-2xl font-semibold text-gray-900">₹0</dd>
                                             </dl>
                                         </div>
                                     </div>
@@ -135,7 +125,7 @@
                                             <dl>
                                                 <dt class="text-sm font-medium text-gray-500 truncate">Pending Orders
                                                 </dt>
-                                                <dd class="text-2xl font-semibold text-primary">3</dd>
+                                                <dd class="text-2xl font-semibold text-primary">0</dd>
                                             </dl>
                                         </div>
                                     </div>
@@ -151,7 +141,7 @@
                                             <dl>
                                                 <dt class="text-sm font-medium text-gray-500 truncate">Low Stock Items
                                                 </dt>
-                                                <dd class="text-2xl font-semibold text-yellow-600">2</dd>
+                                                <dd class="text-2xl font-semibold text-yellow-600">0</dd>
                                             </dl>
                                         </div>
                                     </div>
@@ -163,44 +153,8 @@
                         <h2 class="text-lg font-medium text-gray-900 mb-4">Live Orders</h2>
                         <div class="bg-white shadow overflow-hidden sm:rounded-md">
                             <ul class="divide-y divide-gray-200">
-                                <li>
-                                    <div class="px-4 py-4 sm:px-6">
-                                        <div class="flex items-center justify-between">
-                                            <p class="text-sm font-medium text-primary truncate">
-                                                Order #12345
-                                            </p>
-                                            <div class="ml-2 flex-shrink-0 flex">
-                                                <p
-                                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                    New
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="mt-2 sm:flex sm:justify-between">
-                                            <div class="sm:flex">
-                                                <p class="flex items-center text-sm text-gray-500">
-                                                    <i data-lucide="user"
-                                                        class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400"></i>
-                                                    John Doe (HSR Layout)
-                                                </p>
-                                            </div>
-                                            <div class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                                                <i data-lucide="clock"
-                                                    class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400"></i>
-                                                <p>
-                                                    2 mins ago
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="mt-4 flex gap-2">
-                                            <button
-                                                class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors">Accept</button>
-                                            <button
-                                                class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-300 transition-colors">Reject</button>
-                                        </div>
-                                    </div>
-                                </li>
-                                <!-- More orders... -->
+                                <!-- Orders will be injected here -->
+                                <li class="p-4 text-center text-gray-500">Loading orders...</li>
                             </ul>
                         </div>
 
@@ -277,80 +231,98 @@
         </div>
     </div>
     <script type="module">
-        import { auth, onAuthStateChanged, signOut } from './firebase-config.js';
-        import { getOrders } from './db-service.js';
+        import { auth, onAuthStateChanged, signOut, db, getDoc, doc } from './firebase-config.js';
+        import { getOrders, updateOrderStatus, getFoodItems, updateFoodItem } from './db-service.js';
 
-        onAuthStateChanged(auth, (user) => {
-            // ideally check if shopkeeper
-            if (!user) window.location.href = 'login.html';
+        // Make functions global
+        window.updateStatus = async function (orderId, status) {
+            if (confirm(`Mark order as ${status}?`)) {
+                try {
+                    await updateOrderStatus(orderId, status);
+                    const allOrders = await getOrders(null);
+                    console.log("Shop Dashboard Fetched Orders:", allOrders);
+                    const foodItems = await getFoodItems();
 
-            initShopDashboard();
-        });
+                    const time = new Date().toLocaleTimeString();
+                    const updateSpan = document.getElementById('lastUpdated');
+                    if (updateSpan) updateSpan.innerText = "Last updated: " + time; {
+                        console.error(e);
+                        alert('Error updating order: ' + e.message);
+                    }
+                }
+        }
 
-        async function initShopDashboard() {
-            // 1. Get Live Orders
-            const allOrders = await getOrders(null); // Fetch all
-            // Filter for active (not delivered)
-            const activeOrders = allOrders.filter(o => o.status !== 'Delivered');
+            window.toggleStock = async function (itemId, currentStatus) {
+                const newStatus = currentStatus === 'In Stock' ? 'Out of Stock' : 'In Stock';
+                if (confirm(`Change status to ${newStatus}?`)) {
+                    try {
+                        await updateFoodItem(itemId, { status: newStatus });
+                        renderDashboard();
+                    } catch (e) {
+                        console.error(e);
+                        alert('Error updating stock: ' + e.message);
+                    }
+                }
+            }
 
-            // Update Stats
-            // ... logic to update stats ...
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    window.location.href = 'index.html';
+                    return;
+                }
 
-            // Render Orders
+                // Strict Shopkeeper Check
+                let isShop = false;
+                // Admin can also access shop
+                if (user.email === 'shop@chicken.com' || user.email === 'admin@chicken.com') isShop = true;
+                else {
+                    const snap = await getDoc(doc(db, "users", user.uid));
+                    if (snap.exists() && (snap.data().role === 'shopkeeper' || snap.data().role === 'admin')) isShop = true;
+                }
+
+                if (!isShop) {
+                    alert("Access Denied: Shopkeepers Only");
+                    window.location.href = 'client.html';
+                    return;
+                }
+
+                renderDashboard();
+
+                // Auto-refresh
+                setInterval(renderDashboard, 10000);
+            });
+
+            async function renderDashboard() {
+                date.getMonth() === today.getMonth() &&
+                    date.getFullYear() === today.getFullYear();
+            });
+
+            const revenue = todayOrders.reduce((sum, o) => sum + o.total, 0);
+            const pending = allOrders.filter(o => o.status !== 'Delivered' && o.status !== 'Cancelled').length;
+            const lowStock = foodItems.filter(i => i.status === 'Out of Stock').length;
+
+            // Update UI Stats
+            document.querySelectorAll('dd')[0].innerText = todayOrders.length;
+            document.querySelectorAll('dd')[1].innerText = '₹' + revenue.toFixed(0);
+            document.querySelectorAll('dd')[2].innerText = pending;
+            document.querySelectorAll('dd')[3].innerText = lowStock;
+
+            // 3. Render Live Orders
+            const activeOrders = allOrders.filter(o => o.status !== 'Delivered' && o.status !== 'Cancelled').reverse();
             const list = document.querySelector('ul.divide-y');
+
+            // Add ID for navigation
+            const liveOrdersTitle = document.querySelector('h2.text-lg.font-medium.text-gray-900.mb-4'); // First h2
+            if (liveOrdersTitle) liveOrdersTitle.id = 'orders';
+
             if (list) {
                 if (activeOrders.length === 0) {
                     list.innerHTML = '<li class="p-4 text-center text-gray-500">No active orders</li>';
                 } else {
                     list.innerHTML = activeOrders.map(order => `
                         <li>
-                            <div class="px-4 py-4 sm:px-6">
+                            <div class="px-4 py-4 sm:px-6 hover:bg-gray-50 transition">
                                 <div class="flex items-center justify-between">
-                                    <p class="text-sm font-medium text-primary truncate">
-                                        Order #${order.id.toString().slice(-6)}
-                                    </p>
-                                    <div class="ml-2 flex-shrink-0 flex">
-                                        <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                            ${order.status}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="mt-2 sm:flex sm:justify-between">
-                                    <div class="sm:flex">
-                                        <p class="flex items-center text-sm text-gray-500">
-                                            <i data-lucide="user" class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400"></i>
-                                            ${order.clientEmail || 'Client'}
-                                        </p>
-                                    </div>
-                                    <div class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                                        <i data-lucide="clock" class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400"></i>
-                                        <p>${new Date(order.timestamp).toLocaleTimeString()}</p>
-                                    </div>
-                                </div>
-                                <div class="mt-2">
-                                     <p class="text-sm text-gray-600">
-                                        ${order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
-                                     </p>
-                                </div>
-                                <div class="mt-4 flex gap-2">
-                                    <button onclick="updateStatus('${order.id}', 'Order Accepted')" class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors">Accept</button>
-                                    <button class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-300 transition-colors">Reject</button>
-                                </div>
-                            </div>
-                        </li>
-                     `).join('');
-                    if (window.lucide) lucide.createIcons();
-                }
-            }
-        }
-
-        window.updateStatus = async function (orderId, status) {
-            // Need a db-service function for this!
-            alert('Updating status to ' + status + ' (Logic to be implemented in db-service)');
-        }
-
-    </script>
-    <script>
         lucide.createIcons();
     </script>
 </body>

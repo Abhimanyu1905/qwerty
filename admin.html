@@ -76,8 +76,11 @@
 
         <!-- Manage Users -->
         <div class="bg-white p-6 rounded-2xl shadow-lg">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <span class="material-icons-round text-brand-red">people</span> Manage Users
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2 justify-between">
+                <span class="flex items-center gap-2"><span class="material-icons-round text-brand-red">people</span>
+                    Manage Users</span>
+                <button onclick="renderUsers()"
+                    class="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200 text-gray-600 transition">Refresh</button>
             </h2>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
@@ -106,10 +109,10 @@
     </div>
 
     <script src="script.js"></script>
-    <script>
-            < script type = "module" >
-        import { auth, onAuthStateChanged, signOut } from './firebase-config.js';
-        import { getFoodItems, addFoodItem, deleteFoodItem, getOrders, deleteDoc, doc, db } from './db-service.js';
+
+    <script type="module">
+        import { auth, onAuthStateChanged, signOut, doc, db, deleteDoc, getDoc } from './firebase-config.js';
+        import { getFoodItems, addFoodItem, deleteFoodItem, getOrders, getUsers, updateUserRole, deleteUser } from './db-service.js';
 
         window.logout = () => {
             signOut(auth).then(() => window.location.href = 'index.html');
@@ -118,11 +121,26 @@
         (async function () {
             onAuthStateChanged(auth, async (user) => {
                 if (!user) {
-                    window.location.href = 'login.html';
+                    window.location.href = 'admin-login.html';
+                    return;
                 }
-                // Add admin email check here if you want strict security
+
+                // Strict Admin Check
+                let isAdmin = false;
+                if (user.email === 'admin@chicken.com') isAdmin = true;
+                else {
+                    const snap = await getDoc(doc(db, "users", user.uid));
+                    if (snap.exists() && snap.data().role === 'admin') isAdmin = true;
+                }
+
+                if (!isAdmin) {
+                    alert("Unauthorized Access");
+                    window.location.href = 'index.html';
+                    return;
+                }
+
                 renderAdminMenu();
-                // renderUsers(); // Users logic is complex with Auth, might skip specific user management for now or just mock it
+                renderUsers();
             });
 
             window.handleAddFood = async function (e) {
@@ -133,31 +151,40 @@
                 const rating = parseFloat(document.getElementById('itemRating').value);
 
                 try {
+                    console.log("Adding item...");
                     await addFoodItem({ name, image, price, rating });
                     e.target.reset();
-                    showToast('Item Added Successfully!');
+                    alert('Item Added Successfully!');
                     renderAdminMenu();
                 } catch (err) {
-                    console.error(err);
-                    showToast('Error adding item: ' + err.message);
+                    console.error("Add Item Error:", err);
+                    alert('Error adding item: ' + err.message);
                 }
             }
 
             window.renderAdminMenu = async function () {
                 const grid = document.getElementById('adminMenuGrid');
                 grid.innerHTML = 'Loading...';
-                const items = await getFoodItems();
-
-                grid.innerHTML = items.map(item => `
-                    <div class="bg-white p-3 rounded-lg shadow flex flex-col gap-2 relative group">
-                        <img src="${item.image}" class="w-full h-24 object-cover rounded-md">
-                        <h4 class="font-bold text-sm truncate">${item.name}</h4>
-                        <p class="text-brand-red font-bold text-xs">₹${item.price}</p>
-                        <button onclick="deleteItem('${item.id}')" class="absolute top-2 right-2 bg-white text-red-500 p-1 rounded-full shadow opacity-0 group-hover:opacity-100 transition">
-                            <span class="material-icons-round text-sm">delete</span>
-                        </button>
-                    </div>
-                `).join('');
+                try {
+                    const items = await getFoodItems();
+                    if (items.length === 0) {
+                        grid.innerHTML = '<p class="text-gray-500 col-span-full text-center">No items found. Add one above!</p>';
+                        return;
+                    }
+                    grid.innerHTML = items.map(item => `
+                        <div class="bg-white p-3 rounded-lg shadow flex flex-col gap-2 relative group">
+                            <img src="${item.image}" class="w-full h-24 object-cover rounded-md">
+                            <h4 class="font-bold text-sm truncate">${item.name}</h4>
+                            <p class="text-brand-red font-bold text-xs">₹${item.price}</p>
+                            <button onclick="deleteItem('${item.id}')" class="absolute top-2 right-2 bg-white text-red-500 p-1 rounded-full shadow opacity-0 group-hover:opacity-100 transition">
+                                <span class="material-icons-round text-sm">delete</span>
+                            </button>
+                        </div>
+                    `).join('');
+                } catch (err) {
+                    console.error("Error loading menu:", err);
+                    grid.innerHTML = `<p class="text-red-500 col-span-full text-center">Error loading menu: ${err.message}</p>`;
+                }
             }
 
             window.deleteItem = async function (id) {
@@ -173,13 +200,76 @@
                 }
             }
 
-            // Mock render users for now to avoid errors if elements exist
-            window.renderUsers = function () { }
+            window.renderUsers = async function () {
+                const userList = document.getElementById('userList');
+                userList.innerHTML = '<tr><td colspan="3" class="p-4 text-center">Loading users...</td></tr>';
+
+                try {
+                    const users = await getUsers();
+                    userList.innerHTML = users.map(user => `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3 font-medium">${user.email || user.name || 'Unknown'}</td>
+                            <td class="p-3">
+                                <span class="px-2 py-1 flex w-fit text-xs font-semibold rounded-full 
+                                    ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                            user.role === 'shopkeeper' ? 'bg-blue-100 text-blue-800' :
+                                'bg-green-100 text-green-800'}">
+                                    ${user.role || 'client'}
+                                </span>
+                            </td>
+                            <td class="p-3 text-right flex items-center justify-end gap-2">
+                                <select onchange="changeRole('${user.id}', this.value)" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-brand-red focus:ring focus:ring-brand-red focus:ring-opacity-50">
+                                    <option value="" disabled selected>Change Role</option>
+                                    <option value="client">Client</option>
+                                    <option value="shopkeeper">Shopkeeper</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                                <button onclick="removeUser('${user.id}')" class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition" title="Remove User">
+                                    <span class="material-icons-round">delete</span>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } catch (e) {
+                    console.error("Error fetching users:", e);
+                    alert("Failed to load users: " + e.message);
+                    userList.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-500">Error: ${e.message}</td></tr>`;
+                }
+            }
+
+            window.changeRole = async function (uid, newRole) {
+                if (confirm(`Change user role to ${newRole}?`)) {
+                    try {
+                        await updateUserRole(uid, newRole);
+                        showToast(`Role updated to ${newRole}`);
+                        renderUsers(); // Refresh list
+                    } catch (e) {
+                        console.error(e);
+                        showToast('Error updating role');
+                    }
+                }
+            }
+
+            window.removeUser = async function (uid) {
+                if (confirm('Are you sure you want to remove this user? This cannot be undone.')) {
+                    try {
+                        await deleteUser(uid);
+                        alert('User removed successfully.');
+                        renderUsers();
+                    } catch (e) {
+                        console.error(e);
+                        alert('Error removing user: ' + e.message);
+                    }
+                }
+            }
+
+            // Initial Load
+            renderUsers();
 
         })();
     </script>
 
-    </script>
+
 </body>
 
 </html>

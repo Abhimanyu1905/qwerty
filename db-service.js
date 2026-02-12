@@ -1,4 +1,4 @@
-import { db, collection, addDoc, getDocs, doc, deleteDoc, query, where } from './firebase-config.js';
+import { db, collection, addDoc, getDocs, doc, deleteDoc, query, where, setDoc } from './firebase-config.js';
 
 // --- Collection References ---
 const FOOD_COLLECTION = 'foodItems';
@@ -42,6 +42,14 @@ export async function placeOrder(order) {
     return { id: docRef.id, ...order };
 }
 
+export async function updateOrderStatus(orderId, status) {
+    await setDoc(doc(db, ORDERS_COLLECTION, orderId), { status }, { merge: true });
+}
+
+export async function updateFoodItem(id, data) {
+    await setDoc(doc(db, FOOD_COLLECTION, id), data, { merge: true });
+}
+
 
 // --- Users ---
 //(We might just stick to Auth for login, but store roles in a 'users' collection)
@@ -52,6 +60,19 @@ export async function getUserRole(email) {
         return querySnapshot.docs[0].data().role;
     }
     return 'client'; // Default role
+}
+
+export async function getUsers() {
+    const querySnapshot = await getDocs(collection(db, USERS_COLLECTION));
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+export async function updateUserRole(uid, newRole) {
+    await setDoc(doc(db, USERS_COLLECTION, uid), { role: newRole }, { merge: true });
+}
+
+export async function deleteUser(uid) {
+    await deleteDoc(doc(db, USERS_COLLECTION, uid));
 }
 
 // --- Seeding (One Time Use) ---
@@ -68,3 +89,6 @@ export async function seedDatabase(defaultItems) {
     }
     console.log("Seeding complete!");
 }
+
+// Expose for console use
+window.seedDatabase = seedDatabase;
